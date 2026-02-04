@@ -1,184 +1,94 @@
-from abc import ABC, abstractmethod
+"""Module defining the Product class representing an item in the store."""
+
 
 class Product:
-    def __init__(self, name: str, price: float, quantity: int):
-        # Validierungen
-        if not name or not isinstance(name, str):
-            raise ValueError("Produktname darf nicht leer sein.")
-        if price < 0:
-            raise ValueError("Preis darf nicht negativ sein.")
-        if quantity < 0:
-            raise ValueError("Menge darf nicht negativ sein.")
+    """Represents a product with name, price, and quantity."""
 
-        # Instanzvariablen
+    def __init__(self, name: str, price: float, quantity: int):
+        """
+        Initialize a Product instance.
+
+        Args:
+            name (str): Name of the product.
+            price (float): Price per unit (must be non-negative).
+            quantity (int): Available quantity in stock (must be non-negative).
+
+        Raises:
+            ValueError: If name is empty or price/quantity is negative.
+        """
+        if not name or not isinstance(name, str):
+            raise ValueError("Product name cannot be empty.")
+        if price < 0:
+            raise ValueError("Price cannot be negative.")
+        if quantity < 0:
+            raise ValueError("Quantity cannot be negative.")
+
         self.name = name
         self.price = price
         self.quantity = quantity
-        self.active = True  # Produkte sind standardmäßig aktiv
-        self.promotion = None  # keine Aktion standardmäßig
+        self.active = True  # Products are active by default
 
-    # Getter für quantity
     def get_quantity(self) -> int:
+        """Return the current quantity of the product."""
         return self.quantity
 
-    # Setter für quantity
     def set_quantity(self, quantity: int):
+        """
+        Update the product quantity.
+
+        Args:
+            quantity (int): New quantity (must be non-negative).
+
+        Raises:
+            ValueError: If quantity is negative.
+        """
         if quantity < 0:
-            raise ValueError("Menge darf nicht negativ sein.")
+            raise ValueError("Quantity cannot be negative.")
         self.quantity = quantity
-        # Wenn Menge 0 erreicht, wird das Produkt deaktiviert
         if self.quantity == 0:
             self.deactivate()
 
-    # Getter für active
     def is_active(self) -> bool:
+        """Return whether the product is active."""
         return self.active
 
-    # Produkt aktivieren
     def activate(self):
+        """Activate the product."""
         self.active = True
 
-    # Produkt deaktivieren
     def deactivate(self):
+        """Deactivate the product."""
         self.active = False
 
-    # Getter / Setter für Promotion
-    def set_promotion(self, promotion):
-        self.promotion = promotion
-
-    def get_promotion(self):
-        return self.promotion
-
-    # Produkt anzeigen
     def show(self):
-        base = f"{self.name}, Price: {self.price}, Quantity: {self.quantity}"
-        if self.promotion:
-            base += f", Promotion: {self.promotion.name}"
-        print(base)
+        """Print product details in a readable format."""
+        print(f"{self.name}, Price: {self.price}, Quantity: {self.quantity}")
 
-    # Produkt kaufen
     def buy(self, quantity: int) -> float:
+        """
+        Purchase a given quantity of this product.
+
+        Args:
+            quantity (int): Number of units to buy.
+
+        Returns:
+            float: Total price for the purchase.
+
+        Raises:
+            Exception: If product is inactive or stock is insufficient.
+            ValueError: If quantity <= 0.
+        """
         if not self.active:
-            raise Exception("Produkt ist nicht aktiv und kann nicht gekauft werden.")
+            raise Exception("Product is inactive and cannot be purchased.")
         if quantity <= 0:
-            raise ValueError("Die Kaufmenge muss größer als 0 sein.")
-        if quantity > self.get_quantity():
-            raise Exception("Nicht genügend Bestand vorhanden.")
+            raise ValueError("Purchase quantity must be greater than 0.")
+        if quantity > self.quantity:
+            raise Exception("Not enough stock available.")
 
-        # Preis über Promotion berechnen, falls gesetzt
-        if self.promotion:
-            total_price = self.promotion.apply_promotion(self, quantity)
-        else:
-            total_price = self.price * quantity
+        total_price = self.price * quantity
+        self.quantity -= quantity
 
-        # Menge reduzieren nur für physische / lagernde Produkte
-        if hasattr(self, "quantity") and self.quantity != float("inf"):
-            self.quantity -= quantity
-            if self.quantity <= 0:
-                self.deactivate()
+        if self.quantity == 0:
+            self.deactivate()
 
         return total_price
-
-
-# -------------------------
-# Neue Klassen (Erweiterungen)
-# -------------------------
-
-class NonStockedProduct(Product):
-    """
-    Produkte, die nicht gelagert werden (z. B. Software-Lizenzen).
-    Menge wird nicht reduziert; es gibt praktisch unbegrenzte Verfügbarkeit.
-    """
-
-    def __init__(self, name: str, price: float):
-        super().__init__(name, price, quantity=0)
-
-    def get_quantity(self):
-        return float("inf")
-
-    def buy(self, quantity: int) -> float:
-        if not self.active:
-            raise Exception("Produkt ist nicht aktiv und kann nicht gekauft werden.")
-        if quantity <= 0:
-            raise ValueError("Die Kaufmenge muss größer als 0 sein.")
-        if self.promotion:
-            return self.promotion.apply_promotion(self, quantity)
-        return self.price * quantity
-
-    def show(self):
-        base = f"{self.name}, Price: {self.price} (Non-stocked product)"
-        if self.promotion:
-            base += f", Promotion: {self.promotion.name}"
-        print(base)
-
-
-class LimitedProduct(Product):
-    """
-    Produkte mit einer maximalen Bestellmenge pro Bestellung (maximum).
-    """
-
-    def __init__(self, name: str, price: float, quantity: int, maximum: int):
-        super().__init__(name, price, quantity)
-        if maximum <= 0:
-            raise ValueError("Das maximum muss größer als 0 sein.")
-        self.maximum = maximum
-
-    def buy(self, quantity: int) -> float:
-        if quantity > self.maximum:
-            raise Exception(f"Maximale Bestellmenge für {self.name} ist {self.maximum}.")
-        if self.promotion:
-            total_price = self.promotion.apply_promotion(self, quantity)
-        else:
-            total_price = super().buy(quantity)
-            return total_price
-        # Menge reduzieren
-        if self.quantity != float("inf"):
-            self.quantity -= quantity
-            if self.quantity <= 0:
-                self.deactivate()
-        return total_price
-
-    def show(self):
-        base = f"{self.name}, Price: {self.price}, Quantity: {self.quantity}, Maximum per order: {self.maximum}"
-        if self.promotion:
-            base += f", Promotion: {self.promotion.name}"
-        print(base)
-
-
-# -------------------------
-# Promotion Klassen
-# -------------------------
-
-class Promotion(ABC):
-    def __init__(self, name: str):
-        self.name = name
-
-    @abstractmethod
-    def apply_promotion(self, product, quantity: int) -> float:
-        pass
-
-
-class PercentDiscount(Promotion):
-    def __init__(self, name: str, percent: float):
-        super().__init__(name)
-        self.percent = percent
-
-    def apply_promotion(self, product, quantity: int) -> float:
-        total = product.price * quantity
-        discount = total * (self.percent / 100)
-        return total - discount
-
-
-class SecondHalfPrice(Promotion):
-    def apply_promotion(self, product, quantity: int) -> float:
-        full_price_qty = quantity // 2 + quantity % 2
-        half_price_qty = quantity // 2
-        return full_price_qty * product.price + half_price_qty * product.price * 0.5
-
-
-class ThirdOneFree(Promotion):
-    def apply_promotion(self, product, quantity: int) -> float:
-        groups_of_three = quantity // 3
-        remaining = quantity % 3
-        total_qty_to_pay = quantity - groups_of_three
-        return total_qty_to_pay * product.price

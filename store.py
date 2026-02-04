@@ -1,53 +1,90 @@
+"""Module defining the Store class that manages multiple products."""
+
 from typing import List, Tuple
 from products import Product
 
 
 class Store:
+    """Represents a store that holds and manages multiple products."""
+
     def __init__(self, all_products: List[Product]):
-        # Validierung: alle Elemente müssen vom Typ Product sein
+        """
+        Initialize a Store with a list of Product instances.
+
+        Args:
+            all_products (List[Product]): List of products to add to the store.
+
+        Raises:
+            ValueError: If any element is not an instance of Product.
+        """
         if not all(isinstance(p, Product) for p in all_products):
-            raise ValueError("Alle Elemente müssen Instanzen der Klasse Product sein.")
+            raise ValueError("All elements must be instances of Product.")
         self.products = all_products
 
     def add_product(self, product: Product):
-        """Fügt ein Produkt zum Store hinzu."""
+        """
+        Add a new product to the store.
+
+        Args:
+            product (Product): The product to add.
+
+        Raises:
+            ValueError: If argument is not a Product instance.
+        """
         if not isinstance(product, Product):
-            raise ValueError("Nur Instanzen der Klasse Product können hinzugefügt werden.")
+            raise ValueError("Only Product instances can be added.")
         self.products.append(product)
 
     def remove_product(self, product: Product):
-        """Entfernt ein Produkt aus dem Store."""
+        """
+        Remove a product from the store.
+
+        Args:
+            product (Product): The product to remove.
+
+        Raises:
+            ValueError: If the product is not found in the store.
+        """
         if product in self.products:
             self.products.remove(product)
         else:
-            raise ValueError("Produkt nicht im Store gefunden.")
+            raise ValueError("Product not found in store.")
 
     def get_total_quantity(self) -> int:
-        """Gibt die Gesamtmenge aller Produkte im Store zurück."""
+        """Return the total quantity of all products in the store."""
         return sum(p.get_quantity() for p in self.products)
 
     def get_all_products(self) -> List[Product]:
-        """Gibt eine Liste aller aktiven Produkte im Store zurück."""
+        """Return a list of all active products."""
         return [p for p in self.products if p.is_active()]
 
     def order(self, shopping_list: List[Tuple[Product, int]]) -> float:
         """
-        Führt eine Bestellung aus.
-        shopping_list ist eine Liste von Tupeln: (Produkt, Menge)
-        Gibt den Gesamtpreis der Bestellung zurück.
+        Process an order from a list of (Product, quantity) tuples.
+
+        Args:
+            shopping_list (List[Tuple[Product, int]]): List of products and their quantities.
+
+        Returns:
+            float: The total price of the order.
+
+        Raises:
+            Exception: If any product is inactive or quantity exceeds available stock.
         """
         total_cost = 0.0
 
-        # Vorabprüfung: reicht der Bestand?
+        # Validate stock availability before processing
         for product, quantity in shopping_list:
             if not product.is_active():
-                raise Exception(f"{product.name} ist nicht aktiv und kann nicht bestellt werden.")
+                raise Exception(f"{product.name} is inactive and cannot be ordered.")
             if quantity > product.get_quantity():
-                raise Exception(f"Nicht genügend Bestand für {product.name}. Verfügbar: {product.get_quantity()}.")
+                raise Exception(
+                    f"Not enough stock for {product.name}. "
+                    f"Available: {product.get_quantity()}."
+                )
 
-        # Wenn alles okay ist, Produkte kaufen
+        # Process the order
         for product, quantity in shopping_list:
             total_cost += product.buy(quantity)
 
         return total_cost
-
