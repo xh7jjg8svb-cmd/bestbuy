@@ -1,15 +1,44 @@
-"""Main entry point for running the store management system."""
+"""Main module to start and manage the store application."""
 
 import products
 import store
 
 
+def setup_store():
+    """
+    Initialize and configure the store with default products and promotions.
+
+    Returns:
+        Store: A fully configured Store instance.
+    """
+    # Setup initial stock of inventory
+    product_list = [
+        products.Product("MacBook Air M2", price=1450, quantity=100),
+        products.Product("Bose QuietComfort Earbuds", price=250, quantity=500),
+        products.Product("Google Pixel 7", price=500, quantity=250),
+        products.NonStockedProduct("Windows License", price=125),
+        products.LimitedProduct("Shipping", price=10, quantity=250, maximum=1)
+    ]
+
+    # Create promotion catalog
+    second_half_price = products.SecondHalfPrice("Second Half price!")
+    third_one_free = products.ThirdOneFree("Third One Free!")
+    thirty_percent = products.PercentDiscount("30% off!", percent=30)
+
+    # Add promotions to products
+    product_list[0].set_promotion(second_half_price)
+    product_list[1].set_promotion(third_one_free)
+    product_list[3].set_promotion(thirty_percent)
+
+    return store.Store(product_list)
+
+
 def start(best_buy):
     """
-    Display the main menu for the store application.
+    Start the interactive menu for the store.
 
     Args:
-        best_buy (store.Store): The store instance to operate on.
+        best_buy (Store): The Store instance to manage.
     """
     while True:
         print("\n--- Store Menu ---")
@@ -44,10 +73,10 @@ def start(best_buy):
 
 def make_order(best_buy):
     """
-    Facilitate creating a customer order by selecting products and quantities.
+    Handle the process of making an order through user input.
 
     Args:
-        best_buy (store.Store): The store from which to order products.
+        best_buy (Store): The Store instance to order from.
     """
     all_products = best_buy.get_all_products()
     shopping_list = []
@@ -69,12 +98,11 @@ def make_order(best_buy):
         try:
             idx = int(prod_idx) - 1
             qty = int(amount)
-
             selected_product = all_products[idx]
             shopping_list.append((selected_product, qty))
             print("Added to cart.")
         except (ValueError, IndexError):
-            print("Invalid input. Please enter valid numbers.")
+            print("Invalid input. Please enter a valid number.")
 
     if shopping_list:
         try:
@@ -84,14 +112,6 @@ def make_order(best_buy):
             print(f"Order failed: {e}")
 
 
-# Setup initial inventory
-product_list = [
-    products.Product("MacBook Air M2", price=1450, quantity=100),
-    products.Product("Bose QuietComfort Earbuds", price=250, quantity=500),
-    products.Product("Google Pixel 7", price=500, quantity=250),
-]
-
-best_buy = store.Store(product_list)
-
 if __name__ == "__main__":
+    best_buy = setup_store()
     start(best_buy)
